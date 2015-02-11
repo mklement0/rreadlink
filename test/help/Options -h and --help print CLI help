@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+PATH="../../bin:$PATH"
+
+rreadlink -h | fgrep -q 'SYNOPSIS' || exit
+
+rreadlink --help | fgrep -q 'SYNOPSIS' || exit

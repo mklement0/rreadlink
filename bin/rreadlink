@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+
+THIS_NAME=$(basename "$BASH_SOURCE")
+
+# Helper function for exiting with error message due to runtime error.
+#   die [errMsg [exitCode]]
+# Default error message states context and indicates that execution is aborted. Default exit code is 1.
+# Prefix for context is always prepended.
+# Note: An error message is *always* printed; if you just want to exit with a specific code silently, use `exit n` directly.
+die() {
+  echo "$THIS_NAME: ERROR: ${1:-"ABORTING due to unexpected error."}" 1>&2
+  exit ${2:-1} # Note: If the argument is non-numeric, the shell prints a warning and uses exit code 255.
+}
+
+# Helper function for exiting with error message due to invalid parameters.
+#   dieSyntax [errMsg]
+# Default error message is provided, as is prefix and suffix; exit code is always 2.
+dieSyntax() {
+  echo "$THIS_NAME: ARGUMENT ERROR: ${1:-"Invalid argument(s) specified."} Use -h for help." 1>&2
+  exit 2
+}
+
+  # Separator between paths for single-line output.
+SEP=' -> '
+
+# Command-line help.
+if [[ "$1" == '--help' || "$1" == '-h' ]]; then
+  cat <<EOF
+
+SYNOPSIS
+  $THIS_NAME symLink
+  $THIS_NAME -1 symLink
+  $THIS_NAME -e symLink
+
+DESCRIPTION
+  Recursive readlink: prints the CHAIN OF SYMLINKS
+  from the input file to its ultimate target, using ABSOLUTE PATHS.
+
+  By default, when outputting to a terminal, a single line is output
+  with '$SEP' between paths, with symlinks marked with a terminal '@'
+  (similar to  \`ls -lF\`). 
+
+  -1 
+    (The number one.) Prints each output path on its own line,
+    without the terminal '@'.
+    This option is implicitly on when not outputting to a terminal.
+
+  -e
+    Prints only the *ultimate* target's absolute path.
+    Same as GNU readlink's -e (--canonicalize-existing) option.
+  
+  If the input file is indeed a symlink, you'll get at least 2
+  output paths (unless -e is specified): the input symlink and its
+  target; if there are intermediate symlinks, you'll get more.
+
+  While each file is output by its absolute path, it is only
+  the *ultimate* target whose path will be *canonical*.
+
+  CAVEAT: *Circular* symlinks are NOT detected and will result in
+  an infinite loop.
+
+  If any of the files in the chain do not exist, processing
+  stops, an error message is output and exit code 1 is returned.
+
+  If the input file is NOT a symlink, only *its* full path is
+  printed in its *canonical* form. I.e., the file's directory
+  path - if it happens to have symlink components - is resolved to
+  its ultimate target.
+
+  Thus, you can use
+    $THIS_NAME -e anyFile
+  on any existing filesystem object, and you'll either get its own
+  canonical path (if not a symlink) or its ultimate target's canonical
+  path (if a symlink).
+
+EXAMPLES
+    # Prints the chain of symlinks for the \`git\` executable
+    # in the \$PATH.
+  $THIS_NAME \$(which git)
+    # Prints the canonicalized path of the given non-symlink.
+    # (Example from OSX, where /var links to /private/var.)
+  $THIS_NAME /var/log  # -> '/private/var/log'
+EOF
+    exit 0
+fi
+
+## -------
+# SYNOPSIS
+#   rreadlinkchain symLink
+# DESCRIPTION
+#  Recursive readlink: prints the CHAIN OF SYMLINKS from the input
+#  file to its ultimate target, with each path on a separate line.
+#  Only the ultimate target's path is canonical, though.
+# NOTES
+#   Attempts to use `readlink`, which is found on most modern platforms (notable exception: HP-UX)
+#   If `readlink` is not available, output from `ls -l` is parsed, which is the only POSIX-compliant
+#   way to determine a symlink's target; caveat: if a filename contains literal ' -> ', this will break.
+# EXAMPLES
+#     # Print the symlink chain of the `git` executable in the $PATH.
+#   rreadlinkchain  "$(which git)"
+#    # Ditto, using single-line `ls -l`-style format ('a@ -> b')
+#   rreadlinkchain  "$(which git)" | sed -nE -e '$!{a\'$'\n''@ -> ' -e '}; p' | tr -d '\n'
+# THANKS
+#   http://stackoverflow.com/a/1116890/45375
+rreadlinkchain() ( # execute in *subshell* to localize the effect of `cd`
+
+  local target=$1 targetDir targetName readlinkexe=$(command -pv readlink) CDPATH= 
+  
+  while :; do
+      # Unless the file is a symlink OR exists, we report an error - note that using `-e` with a symlink reports the *target*'s existence, not the symlink's.
+    [[ -L $target || -e $target ]] || { printf '%s\n' "ERROR: $THIS_NAME: '$target' does not exist." 1>&2; return 1; }
+      # !! We use `cd` to change to the target's folder
+      # !! so we can correctly resolve the full dir. path.
+    builtin cd "$(command -p dirname -- "$target")" # note: cd "" is the same as cd . - i.e., a no-op.
+    targetDir=$PWD
+    targetName=$(command -p basename -- "$target")
+    done=0
+    if [[ ! -L $targetName ]]; then
+        # We've found the ultimate target (or the input file wasn't a symlink to begin with).
+        # For the *ultimate* target we want use `pwd -P` to make sure we use the actual, physical directory,
+        # (not a symlink) to get the *canonical* path.
+      targetDir=$(builtin pwd -P)
+      done=1
+    fi
+      # Print (next) path - note that we manually resolve paths ending in /. and /.. to make sure we have a normalized path.
+    if [[ $targetName == '.' ]]; then
+      printf '%s\n' "${targetDir%/}"
+    elif  [[ $targetName == '..' ]]; then
+      # Caveat: something like /var/.. will resolve to /private (assuming /var@ -> /private/var), i.e. the '..' is applied
+      # AFTER canonicalization.
+      printf '%s\n' "$(command -p dirname -- "${targetDir}")"
+    else
+      printf '%s\n' "${targetDir%/}/$targetName"
+    fi
+      # Exit, if we've hit the non-symlink at the end of the chain.
+    (( done )) && break 
+      # File is symlink -> continue to resolve.
+    if [[ -n $readlinkexe ]]; then # Use `readlink`.
+      target=$("$readlinkexe" -- "$targetName")
+    else # `readlink` utility not available.
+      # Parse `ls -l` output, which, unfortunately, is the only POSIX-compliant way
+      # to determine a symlink's target. Hypothetically, this can break with filenames containig literal ' ->'.
+      target=$(command -p ls -l -- "$targetName")
+      target=${target#* -> }
+    fi
+  done
+)
+
+
+## -------
+
+onePerLine=0 ultimateOnly=0
+while getopts 1e opt; do  # $opt will receive the option *letters* one by one; a trailing : means that an arg. is required.
+  [[ $opt == '?' ]] && exit 2 # invalid option or missing option argument - getopts has already printed an error to stderr for us, we just exit.
+  case "$opt" in
+    1)
+      onePerLine=1
+      ;;
+    e)
+      ultimateOnly=1
+      ;;
+    *)
+      die "DESIGN ERROR: option -$opt not handled."
+      ;;
+  esac
+done
+
+# -1 is implicitly on, if stdout is not connected to a terminal (mirrors behavior of ls).
+# In other words: when not outputting to a terminal, use the 1-path-per-line output format.
+[[ ! -t 1 ]] && onePerLine=1
+
+  # Process the remaining arguments, i.e., the operands (positional arguments).
+shift $((OPTIND - 1)) # Skip the already-processed arguments (options).
+
+# Make sure we have at least one argument.
+(( $# == 1 )) || dieSyntax "Unexpected number of arguments specified."
+
+
+  # Create temp. file.
+tmpFile="$(mktemp -t 'XXX')"
+  # Set up exit trap to automatically clean up the temp file.
+trap 'rm "$tmpFile"' EXIT
+
+failed=0
+paths="$(rreadlinkchain "$1" 2>"$tmpFile")" || failed=1
+
+if [[ -n $paths ]]; then
+  if (( ultimateOnly )); then
+    tail -1 <<<"$paths"
+  elif (( onePerLine )); then
+      # Output each path on its own line.
+    echo "$paths"
+  else
+      # Default output: print `ls -F`-style, but with *full* paths; e.g.: 
+      #     /usr/local/bin/gawk@ -> /usr/local/Cellar/gawk/4.1.0/bin/gawk
+      # The `awk` command replaces the newlines with separators and terminates every field but the last with @ to mark it as a symlink.
+      #  Note: `gsub("\n$", "")` makes sure that the last line has no trailing \n - gawk, for instance, apparently always appends one.
+    awk -F '\0' -v RS='\0' -v sep="$SEP" '{ gsub("\n$", ""); gsub("\n", "@" sep); printf "%s", $0 }' <<<"$paths"
+      # If a failure occurred, yet *some* paths were printed, we conclude that some symlink's target could not be
+      # found, so we end the line with another @ followed by the separator to indicate that the next target could
+      # not be resolved - the error message will be output below.
+    (( failed )) && printf "@$SEP"
+    printf '\n'
+  fi
+fi
+
+  # Output error message, if an error was encountered.
+if (( failed )); then
+  cat "$tmpFile" 1>&2
+fi
+
+exit $(( failed ))
