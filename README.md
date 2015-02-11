@@ -59,21 +59,22 @@ $ rreadlink -h
 
 SYNOPSIS
   rreadlink symLink
-  rreadlink -1 symLink
+  rreadlink [-s|-1] symLink
   rreadlink -e symLink
 
 DESCRIPTION
   Recursive readlink: prints the CHAIN OF SYMLINKS
   from the input file to its ultimate target, using ABSOLUTE PATHS.
 
-  By default, when outputting to a terminal, a single line is output
-  with ' -> ' between paths, with symlinks marked with a terminal '@'
-  (similar to  `ls -lF`). 
+  -s
+    Short output format - a single line is output with ' -> ' between paths,
+    with symlinks marked with a terminal '@' (similar to  `ls -lF`).
+    This is the default output format when printing to a terminal.
 
   -1 
-    (The number one.) Prints each output path on its own line,
-    without the terminal '@'.
-    This option is implicitly on when not outputting to a terminal.
+    (The number one.) One-line-per-path output format.
+    Prints each output path on its own line, without the terminal '@'.
+    This is the default output format when not printing to a terminal.
 
   -e
     Prints only the *ultimate* target's absolute path.
@@ -141,3 +142,6 @@ This project gratefully depends on the following open-source components, accordi
 Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
+
+* **v0.1.0** (2015-02-11):
+  * Initial release.

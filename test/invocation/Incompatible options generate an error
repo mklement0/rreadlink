@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+PATH="../../bin:$PATH"
+
+rreadlink -1 -s ./.fixtures/symlink-direct && exit 1
+
+exit 0

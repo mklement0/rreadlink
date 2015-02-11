@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+PATH="../../bin:$PATH"
+
+count=$(rreadlink -s ./.fixtures/symlink-direct | wc -l) || exit
+
+(( count == 1 )) || exit
+
+exit 0

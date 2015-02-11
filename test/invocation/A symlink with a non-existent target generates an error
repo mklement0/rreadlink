@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+PATH="../../bin:$PATH"
+
+file=./.fixtures/symlink-missing-target
+
+[[ -L $file ]] || { echo "Broken test: fixture missing." >&2; exit 2; }
+
+rreadlink "$file" && exit 1
+
+exit 0

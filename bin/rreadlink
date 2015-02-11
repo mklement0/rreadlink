@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-THIS_NAME=$(basename "$BASH_SOURCE")
+kTHIS_NAME=$(basename "$BASH_SOURCE")
 
 # Helper function for exiting with error message due to runtime error.
 #   die [errMsg [exitCode]]
@@ -8,7 +8,7 @@ THIS_NAME=$(basename "$BASH_SOURCE")
 # Prefix for context is always prepended.
 # Note: An error message is *always* printed; if you just want to exit with a specific code silently, use `exit n` directly.
 die() {
-  echo "$THIS_NAME: ERROR: ${1:-"ABORTING due to unexpected error."}" 1>&2
+  echo "$kTHIS_NAME: ERROR: ${1:-"ABORTING due to unexpected error."}" 1>&2
   exit ${2:-1} # Note: If the argument is non-numeric, the shell prints a warning and uses exit code 255.
 }
 
@@ -16,9 +16,12 @@ die() {
 #   dieSyntax [errMsg]
 # Default error message is provided, as is prefix and suffix; exit code is always 2.
 dieSyntax() {
-  echo "$THIS_NAME: ARGUMENT ERROR: ${1:-"Invalid argument(s) specified."} Use -h for help." 1>&2
+  echo "$kTHIS_NAME: ARGUMENT ERROR: ${1:-"Invalid argument(s) specified."} Use -h for help." 1>&2
   exit 2
 }
+
+# Output version number and exit, if requested. Note that the `ver="..."` statement is automatically updated by `make version VER=<newVer>` - DO keep the 'v' suffix in the variable _definition_.
+[[ $1 == '--version' ]] && { ver="v0.1.0"; echo "$kTHIS_NAME version ${ver#v}"; exit 0; }
 
   # Separator between paths for single-line output.
 SEP=' -> '
@@ -28,22 +31,23 @@ if [[ "$1" == '--help' || "$1" == '-h' ]]; then
   cat <<EOF
 
 SYNOPSIS
-  $THIS_NAME symLink
-  $THIS_NAME -1 symLink
-  $THIS_NAME -e symLink
+  $kTHIS_NAME symLink
+  $kTHIS_NAME [-s|-1] symLink
+  $kTHIS_NAME -e symLink
 
 DESCRIPTION
   Recursive readlink: prints the CHAIN OF SYMLINKS
   from the input file to its ultimate target, using ABSOLUTE PATHS.
 
-  By default, when outputting to a terminal, a single line is output
-  with '$SEP' between paths, with symlinks marked with a terminal '@'
-  (similar to  \`ls -lF\`). 
+  -s
+    Short output format - a single line is output with '$SEP' between paths,
+    with symlinks marked with a terminal '@' (similar to  \`ls -lF\`).
+    This is the default output format when printing to a terminal.
 
   -1 
-    (The number one.) Prints each output path on its own line,
-    without the terminal '@'.
-    This option is implicitly on when not outputting to a terminal.
+    (The number one.) One-line-per-path output format.
+    Prints each output path on its own line, without the terminal '@'.
+    This is the default output format when not printing to a terminal.
 
   -e
     Prints only the *ultimate* target's absolute path.
@@ -68,7 +72,7 @@ DESCRIPTION
   its ultimate target.
 
   Thus, you can use
-    $THIS_NAME -e anyFile
+    $kTHIS_NAME -e anyFile
   on any existing filesystem object, and you'll either get its own
   canonical path (if not a symlink) or its ultimate target's canonical
   path (if a symlink).
@@ -76,10 +80,10 @@ DESCRIPTION
 EXAMPLES
     # Prints the chain of symlinks for the \`git\` executable
     # in the \$PATH.
-  $THIS_NAME \$(which git)
+  $kTHIS_NAME \$(which git)
     # Prints the canonicalized path of the given non-symlink.
     # (Example from OSX, where /var links to /private/var.)
-  $THIS_NAME /var/log  # -> '/private/var/log'
+  $kTHIS_NAME /var/log  # -> '/private/var/log'
 EOF
     exit 0
 fi
@@ -108,7 +112,7 @@ rreadlinkchain() ( # execute in *subshell* to localize the effect of `cd`
   
   while :; do
       # Unless the file is a symlink OR exists, we report an error - note that using `-e` with a symlink reports the *target*'s existence, not the symlink's.
-    [[ -L $target || -e $target ]] || { printf '%s\n' "ERROR: $THIS_NAME: '$target' does not exist." 1>&2; return 1; }
+    [[ -L $target || -e $target ]] || { printf '%s\n' "ERROR: $kTHIS_NAME: '$target' does not exist." 1>&2; return 1; }
       # !! We use `cd` to change to the target's folder
       # !! so we can correctly resolve the full dir. path.
     builtin cd "$(command -p dirname -- "$target")" # note: cd "" is the same as cd . - i.e., a no-op.
@@ -149,12 +153,15 @@ rreadlinkchain() ( # execute in *subshell* to localize the effect of `cd`
 
 ## -------
 
-onePerLine=0 ultimateOnly=0
-while getopts 1e opt; do  # $opt will receive the option *letters* one by one; a trailing : means that an arg. is required.
+shortFormat= onePathPerLineFormat= ultimateOnly=0
+while getopts s1e opt; do  # $opt will receive the option *letters* one by one; a trailing : means that an arg. is required.
   [[ $opt == '?' ]] && exit 2 # invalid option or missing option argument - getopts has already printed an error to stderr for us, we just exit.
   case "$opt" in
+    s) # short (single-line) format
+      shortFormat=1
+      ;;
     1)
-      onePerLine=1
+      onePathPerLineFormat=1
       ;;
     e)
       ultimateOnly=1
@@ -165,32 +172,40 @@ while getopts 1e opt; do  # $opt will receive the option *letters* one by one; a
   esac
 done
 
-# -1 is implicitly on, if stdout is not connected to a terminal (mirrors behavior of ls).
-# In other words: when not outputting to a terminal, use the 1-path-per-line output format.
-[[ ! -t 1 ]] && onePerLine=1
-
   # Process the remaining arguments, i.e., the operands (positional arguments).
 shift $((OPTIND - 1)) # Skip the already-processed arguments (options).
 
 # Make sure we have at least one argument.
 (( $# == 1 )) || dieSyntax "Unexpected number of arguments specified."
 
+# Determine default output format, if not explicitly specified.
+if [[ -z $shortFormat && -z $onePathPerLineFormat ]]; then
+  # short format (single-line) is the default when printing to a terminal,
+  # one-path-per-line format otherwise.
+  [[ -t 1 ]] && shortFormat=1 || onePathPerLineFormat=1
+else # check for incompatible options
+  [[ -n $shortFormat && -n $onePathPerLineFormat ]] && dieSyntax "Incompatible options specified."
+  # Note that we ignore the ouput-format options (without complaint) if -e is also specified (in which case the output is invariably single-line).
+fi
+# Set the respective other option to 0.
+[[ -n $shortFormat ]] && onePathPerLineFormat=0 || shortFormat=0
 
   # Create temp. file.
-tmpFile="$(mktemp -t 'XXX')"
+tmpFile="$(mktemp -t 'XXXX')"
   # Set up exit trap to automatically clean up the temp file.
 trap 'rm "$tmpFile"' EXIT
 
+  # Determine symlink chain with absolute paths.
 failed=0
 paths="$(rreadlinkchain "$1" 2>"$tmpFile")" || failed=1
 
 if [[ -n $paths ]]; then
   if (( ultimateOnly )); then
     tail -1 <<<"$paths"
-  elif (( onePerLine )); then
+  elif (( onePathPerLineFormat )); then
       # Output each path on its own line.
     echo "$paths"
-  else
+  else # (( shortFormat ))
       # Default output: print `ls -F`-style, but with *full* paths; e.g.: 
       #     /usr/local/bin/gawk@ -> /usr/local/Cellar/gawk/4.1.0/bin/gawk
       # The `awk` command replaces the newlines with separators and terminates every field but the last with @ to mark it as a symlink.

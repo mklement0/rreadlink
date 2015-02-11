@@ -2,4 +2,6 @@
 
 PATH="../../bin:$PATH"
 
-[[ $(rreadlink ~/..) == ${HOME%/*} ]]
+rreadlink no-such-file && exit 1
+
+exit 0

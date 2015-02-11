@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+PATH="../../bin:$PATH"
+
+count=$(rreadlink ./.fixtures/symlink-indirect | egrep -c '^/')
+(( count == 3 )) || exit
