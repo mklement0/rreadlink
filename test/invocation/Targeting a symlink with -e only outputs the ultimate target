@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+PATH="../../bin:$PATH"
+
+result=$(rreadlink -e ./.fixtures/symlink-indirect)
+
+count=$(wc -l <<<"result")
+(( count == 1 )) || exit
+
+[[ $result =~ ./target$ ]] || exit
+
