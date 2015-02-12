@@ -1,13 +1,13 @@
 # rreadlink
 
-`rreadlink` (for *r*ecursive *readlink*) is a **multi-platform Unix CLI** that **prints a symlink's _complete chain_ of targets** using **_absolute_ paths**.
+A **multi-platform Unix CLI** that **prints a symlink's _complete chain_ of targets** using **_absolute_ paths**.
 
-Its primary purpose is to _follow a given symlink to its ultimate target_, printing _all intermediate symlinks_ along the way.  
+The primary purpose of `rreadlink` (*r*ecursive *readlink*) is to _follow a given symlink to its ultimate target_, printing _all intermediate symlinks_ along the way.  
 All paths are printed as _absolute_ paths, with the ultimate target printed in _canonical_ form.
 
-For instance, this is hepful on Linux platforms, where some utilities are installed as symlinks that point to _other_ symlinks before resolving
+This is hepful on Linux platforms, for instance, where some utilities are installed as symlinks that point to _other_ symlinks before resolving
 to the ultimate target, making it difficult to understand what is ultimately invoked; e.g., on some Linux distros `/usr/bin/nawk` links to `/etc/alternatives/nawk`, which in turn links to the actual target, `/usr/bin/gawk`.  
-Note that the native GNU `readline` can either only give you the _next_ target (not the ultimate one), or, with `-f` or `-e`, _only_ the _ultimate_ target (not intermediate ones).
+Note that the native GNU `readline` can either only give you the _next_ target (not the ultimate one), or, with `-f` or `-e` or `-m`, _only_ the _ultimate_ target (not intermediate ones).
 
 Loosely speaking, `rreadlink` provides the functionality of GNU `readline -e` while also including _intermediate_ targets.
 `rreadlink` has the added advantage of being multi-platform (see [Supported Platforms](#supported-platforms) below).
@@ -16,20 +16,20 @@ Alternatively, given a _non_-symlink, `rreadlink` prints the argument's canonica
 
 See the [Usage](#usage) chapter for details.
 
-<sup>See also: [`typex`](https://github.com/mklement0/typex) provides information about _executables in the path_ (among other things) and has `rreadlink`'s behavior built in to show you what is ultimately being invoked.</sup>
+<sup>**See also**: [`typex`](https://github.com/mklement0/typex) provides information about _executables in the path_ (among other things) and has `rreadlink`'s behavior built in to show what file is ultimately invoked.</sup>
 
 ## Supported Platforms
 
-Any Unix-like platform with POSIX-compatible utilities with `bash` installed.
+Any Unix-like platform with POSIX-compatible utilities, with `bash` installed.
 
 ## Quick Examples
 
 ```shell
-# Print the symlink chain for executable /usr/bin/nawk:
+# Print the symlink chain for executable /usr/bin/nawk (e.g., on Ubuntu):
 $ rreadlink /usr/bin/nawk
 /usr/bin/nawk@ -> /etc/alternatives/nawk@ -> /usr/bin/gawk
 
-# Ditto, but printing one path per line and without the symlink-identifier char (@):
+# Ditto, but printing one path per line, without the symlink sigil (@):
 # (This format is the default when not outputting to a terminal.)
 $ rreadlink -1 /usr/bin/nawk
 /usr/bin/nawk
@@ -58,7 +58,6 @@ $ rreadlink -h
 
 
 SYNOPSIS
-  rreadlink symLink
   rreadlink [-s|-1] symLink
   rreadlink -e symLink
 
@@ -142,6 +141,9 @@ This project gratefully depends on the following open-source components, accordi
 Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
+
+* **v0.1.2** (2015-02-11):
+  * Doc: Read-me and CLI help improvements.
 
 * **v0.1.1** (2015-02-11):
   * Dev: Tests improved.
