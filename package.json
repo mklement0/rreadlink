@@ -1,8 +1,8 @@
 {
   "name": "rreadlink",
-  "description": "A Unix CLI that prints a symlink's complete chain of targets using absolute paths.",
+  "description": "A multi-platform Unix CLI that prints a symlink's complete chain of targets using absolute paths.",
   "private": false,
-  "version": "0.1.2",
+  "version": "0.1.3",
   "os": [
     "!win32"
   ],

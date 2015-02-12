@@ -20,7 +20,7 @@ See the [Usage](#usage) chapter for details.
 
 ## Supported Platforms
 
-Any Unix-like platform with POSIX-compatible utilities, with `bash` installed.
+Any Unix-like platform with POSIX-compatible utilities, with `bash` installed; for instance, Linux and OS X.
 
 ## Quick Examples
 
@@ -141,6 +141,9 @@ This project gratefully depends on the following open-source components, accordi
 Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
+
+* **v0.1.3** (2015-02-11):
+  * Doc: Read-me improvements.
 
 * **v0.1.2** (2015-02-11):
   * Doc: Read-me and CLI help improvements.
