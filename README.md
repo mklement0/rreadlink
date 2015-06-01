@@ -1,3 +1,5 @@
+[![npm version](https://badge.fury.io/js/rreadlink.svg)](http://badge.fury.io/js/rreadlink)
+
 # rreadlink
 
 A **multi-platform Unix CLI** that **prints a symlink's _complete chain_ of targets** using **_absolute_ paths**.
@@ -126,7 +128,7 @@ This project gratefully depends on the following open-source components, accordi
 
 <!-- DO NOT EDIT THE NEXT CHAPTER and RETAIN THIS COMMENT: The next chapter is updated by `make update-readme/release` with the dependencies from 'package.json'. ALSO, LEAVE AT LEAST 1 BLANK LINE AFTER THIS COMMENT. -->
 
-### npm Dependencies
+### npm dependencies
 
 * [json (D)](https://github.com/trentm/json)
 * [replace (D)](https://github.com/harthur/replace)
@@ -141,6 +143,9 @@ This project gratefully depends on the following open-source components, accordi
 Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
+
+* **v0.1.4** (2015-05-30):
+  * [doc] [npm registry badge[(https://badge.fury.io) added.
 
 * **v0.1.3** (2015-02-11):
   * Doc: Read-me improvements.
