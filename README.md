@@ -1,4 +1,4 @@
-[![npm version](https://badge.fury.io/js/rreadlink.svg)](http://badge.fury.io/js/rreadlink)
+[![npm version](https://img.shields.io/npm/v/rreadlink.svg)](https://npmjs.com/package/rreadlink) [![license](https://img.shields.io/npm/l/rreadlink.svg)](https://github.com/mklement0/rreadlink/blob/master/LICENSE.md)
 
 # rreadlink
 
@@ -144,8 +144,12 @@ Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
 
+* **[v0.1.5](https://github.com/mklement0/rreadlink/compare/v0.1.4...v0.1.5)** (2015-06-26):
+  * [doc] Read-me: npm badge changed to shields.io; license badge added; typo fixed.
+  * [dev] To-do added; Makefile updated.
+
 * **v0.1.4** (2015-05-30):
-  * [doc] [npm registry badge[(https://badge.fury.io) added.
+  * [doc] [npm registry badge](https://badge.fury.io) added.
 
 * **v0.1.3** (2015-02-11):
   * Doc: Read-me improvements.
