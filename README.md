@@ -55,7 +55,7 @@ With [node.js](http://nodejs.org/) installed, install via the [npm registry](htt
 
 <!-- DO NOT EDIT THE FENCED CODE BLOCK and RETAIN THIS COMMENT: The fenced code block below is updated by `make update-readme/release` with CLI usage information. -->
 
-```
+```nohighlight
 $ rreadlink --help
 
 
@@ -143,6 +143,9 @@ This project gratefully depends on the following open-source components, accordi
 Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
+
+* **[v0.1.6](https://github.com/mklement0/rreadlink/compare/v0.1.5...v0.1.6)** (2015-09-15):
+  * [dev] Makefile improvements; various other behind-the-scenes tweaks.
 
 * **[v0.1.5](https://github.com/mklement0/rreadlink/compare/v0.1.4...v0.1.5)** (2015-06-26):
   * [doc] Read-me: npm badge changed to shields.io; license badge added; typo fixed.
