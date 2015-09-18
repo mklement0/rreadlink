@@ -1,30 +1,51 @@
 [![npm version](https://img.shields.io/npm/v/rreadlink.svg)](https://npmjs.com/package/rreadlink) [![license](https://img.shields.io/npm/l/rreadlink.svg)](https://github.com/mklement0/rreadlink/blob/master/LICENSE.md)
 
-# rreadlink
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-A **multi-platform Unix CLI** that **prints a symlink's _complete chain_ of targets** using **_absolute_ paths**.
+**Contents**
 
-The primary purpose of `rreadlink` (*r*ecursive *readlink*) is to _follow a given symlink to its ultimate target_, printing _all intermediate symlinks_ along the way.  
+- [rreadlink &mdash; introduction](#rreadlink-&mdash-introduction)
+- [Examples](#examples)
+- [Installation](#installation)
+  - [Installation from the npm registry](#installation-from-the-npm-registry)
+  - [Manual installation](#manual-installation)
+- [Usage](#usage)
+- [License](#license)
+  - [Acknowledgements](#acknowledgements)
+  - [npm dependencies](#npm-dependencies)
+- [Changelog](#changelog)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+# rreadlink &mdash; introduction
+
+`rreadlink` is a **multi-platform Unix CLI** that **prints a symlink's _complete chain_ of targets** using **_absolute_ paths**; it can
+also determine the canonical path of non-symlinks.
+
+The primary purpose of `rreadlink` (*r*ecursive *readlink*) is to follow a given symlink to its ultimate target, printing _all intermediate symlinks_ along the way.  
 All paths are printed as _absolute_ paths, with the ultimate target printed in _canonical_ form.
 
 This is hepful on Linux platforms, for instance, where some utilities are installed as symlinks that point to _other_ symlinks before resolving
-to the ultimate target, making it difficult to understand what is ultimately invoked; e.g., on some Linux distros `/usr/bin/nawk` links to `/etc/alternatives/nawk`, which in turn links to the actual target, `/usr/bin/gawk`.  
-Note that the native GNU `readline` can either only give you the _next_ target (not the ultimate one), or, with `-f` or `-e` or `-m`, _only_ the _ultimate_ target (not intermediate ones).
+to the ultimate target, making it difficult to understand what is ultimately invoked;  
+e.g., on some Linux distros `/usr/bin/nawk` links to `/etc/alternatives/nawk`, which in turn links to the actual target, `/usr/bin/gawk`.  
+Note that the native GNU `readlink` utility can either only give you the _next_ target (not the ultimate one), or, with `-f` or `-e` or `-m`,
+_only_ the _ultimate_ target (not intermediate ones).
 
-Loosely speaking, `rreadlink` provides the functionality of GNU `readline -e` while also including _intermediate_ targets.
-`rreadlink` has the added advantage of being multi-platform (see [Supported Platforms](#supported-platforms) below).
+Loosely speaking, `rreadlink` provides the functionality of GNU `readlink -e` while also including _intermediate_ targets.
+`rreadlink` has the added advantage of being multi-platform (see [Installation](#installation) below).
 
-Alternatively, given a _non_-symlink, `rreadlink` prints the argument's canonical path (i.e., any _directory_ components that are symlinks are resolved to their ultimate targets).
+Alternatively, given a _non_-symlink, `rreadlink` prints the argument's canonical path (i.e., any _directory_ components that are symlinks
+are resolved to their ultimate targets).
 
-See the [Usage](#usage) chapter for details.
+Find examples below, concise [usage information](#usage) further below, or
+read the [manual](doc/rreadlink.md).
 
-<sup>**See also**: [`typex`](https://github.com/mklement0/typex) provides information about _executables in the path_ (among other things) and has `rreadlink`'s behavior built in to show what file is ultimately invoked.</sup>
+<sup>**See also**: The [`typex`](https://github.com/mklement0/typex) utility
+provides information about _executables in the path_ (among other things) and
+has `rreadlink`'s behavior built in to show what file is ultimately invoked.</sup>
 
-## Supported Platforms
-
-Any Unix-like platform with POSIX-compatible utilities, with `bash` installed; for instance, Linux and OS X.
-
-## Quick Examples
+# Examples
 
 ```shell
 # Print the symlink chain for executable /usr/bin/nawk (e.g., on Ubuntu):
@@ -42,16 +63,39 @@ $ rreadlink -1 /usr/bin/nawk
 # (Assume that /var links to /private/var and that log is a regular file.)
 $ rreadlink /var/log
 /private/var/log
-
 ```
 
-## Installation
+# Installation
 
-With [node.js](http://nodejs.org/) installed, install via the [npm registry](https://www.npmjs.com/) (you may have to prepend `sudo`):
+**Supported platforms**
 
-	npm install rreadlink -g
+**Unix-like platforms** with **POSIX-compatible utilities** and
+[Bash](http://www.gnu.org/software/bash/), such as Linux and OS X.
 
-## Usage
+## Installation from the npm registry
+
+<sup>Note: Even if you don't use Node.js, its package manager, `npm`, works across platforms and is easy to install; try [`curl -L http://git.io/n-install | bash`](https://github.com/mklement0/n-install)</sup>
+
+With [Node.js](http://nodejs.org/) or [io.js](https://iojs.org/) installed, install [the package](https://www.npmjs.com/package/rreadlink) as follows:
+
+    [sudo] npm install rreadlink -g
+
+**Note**:
+
+* Whether you need `sudo` depends on how you installed Node.js / io.js and whether you've [changed permissions later](https://docs.npmjs.com/getting-started/fixing-npm-permissions); if you get an `EACCES` error, try again with `sudo`.
+* The `-g` ensures [_global_ installation](https://docs.npmjs.com/getting-started/installing-npm-packages-globally) and is needed to put `rreadlink` in your system's `$PATH`.
+
+## Manual installation
+
+* Download [the CLI](https://raw.githubusercontent.com/mklement0/rreadlink/stable/bin/rreadlink) as `rreadlink`.
+* Make it executable with `chmod +x rreadlink`.
+* Move it or symlink it to a folder in your `$PATH`, such as `/usr/local/bin` (OSX) or `/usr/bin` (Linux).
+
+
+# Usage
+
+Find concise usage information below; for complete documentation, read the [manual online](doc/rreadlink.md) or,
+once installed, run `rreadlink nws` (`rreadlink --man` if installed manually).
 
 <!-- DO NOT EDIT THE FENCED CODE BLOCK and RETAIN THIS COMMENT: The fenced code block below is updated by `make update-readme/release` with CLI usage information. -->
 
@@ -59,68 +103,30 @@ With [node.js](http://nodejs.org/) installed, install via the [npm registry](htt
 $ rreadlink --help
 
 
-SYNOPSIS
-  rreadlink [-s|-1] symLink
-  rreadlink -e symLink
+Recursively resolves symlinks by printing the chain of targets using absolute  
+paths or prints the canonical path of a symlink's ultimate target or of a  
+non-symlink.
 
-DESCRIPTION
-  Recursive readlink: prints the CHAIN OF SYMLINKS
-  from the input file to its ultimate target, using ABSOLUTE PATHS.
+    rreadlink [-s|-1] symLink
+    rreadlink -e symLink
 
-  -s
-    Short output format - a single line is output with ' -> ' between paths,
-    with symlinks marked with a terminal '@' (similar to  `ls -lF`).
-    This is the default output format when printing to a terminal.
+    -s     single-line output format using ' -> ' between paths and
+           @ to mark symlinks (default when printing to terminal)
+    -1     one-line-per-path output format, without the @ marker (default
+           when NOT printing to a terminal)
+    -e     print only the symlink's ultimate target, in canonical form
 
-  -1 
-    (The number one.) One-line-per-path output format.
-    Prints each output path on its own line, without the terminal '@'.
-    This is the default output format when not printing to a terminal.
-
-  -e
-    Prints only the *ultimate* target's absolute path.
-    Same as GNU readlink's -e (--canonicalize-existing) option.
-  
-  If the input file is indeed a symlink, you'll get at least 2
-  output paths (unless -e is specified): the input symlink and its
-  target; if there are intermediate symlinks, you'll get more.
-
-  While each file is output by its absolute path, it is only
-  the *ultimate* target whose path will be *canonical*.
-
-  CAVEAT: *Circular* symlinks are NOT detected and will result in
-  an infinite loop.
-
-  If any of the files in the chain do not exist, processing
-  stops, an error message is output and exit code 1 is returned.
-
-  If the input file is NOT a symlink, only *its* full path is
-  printed in its *canonical* form. I.e., the file's directory
-  path - if it happens to have symlink components - is resolved to
-  its ultimate target.
-
-  Thus, you can use
-    rreadlink -e anyFile
-  on any existing filesystem object, and you'll either get its own
-  canonical path (if not a symlink) or its ultimate target's canonical
-  path (if a symlink).
-
-EXAMPLES
-    # Prints the chain of symlinks for the `git` executable
-    # in the $PATH.
-  rreadlink $(which git)
-    # Prints the canonicalized path of the given non-symlink.
-    # (Example from OSX, where /var links to /private/var.)
-  rreadlink /var/log  # -> '/private/var/log'
+Standard options: --help, --man, --version, --home
 ```
 
 <!-- DO NOT EDIT THE NEXT CHAPTER and RETAIN THIS COMMENT: The next chapter is updated by `make update-readme/release` with the contents of 'LICENSE.md'. ALSO, LEAVE AT LEAST 1 BLANK LINE AFTER THIS COMMENT. -->
 
-## License
+# License
 
-Copyright (c) 2015 Michael Klement, released under the [MIT license](https://spdx.org/licenses/MIT#licenseText).
+Copyright (c) 2015 Michael Klement <mklement0@gmail.com> (http://same2u.net),
+released under the [MIT license](https://spdx.org/licenses/MIT#licenseText).
 
-### Acknowledgements
+## Acknowledgements
 
 This project gratefully depends on the following open-source components, according to the terms of their respective licenses.
 
@@ -128,9 +134,11 @@ This project gratefully depends on the following open-source components, accordi
 
 <!-- DO NOT EDIT THE NEXT CHAPTER and RETAIN THIS COMMENT: The next chapter is updated by `make update-readme/release` with the dependencies from 'package.json'. ALSO, LEAVE AT LEAST 1 BLANK LINE AFTER THIS COMMENT. -->
 
-### npm dependencies
+## npm dependencies
 
+* [doctoc (D)](https://github.com/thlorenz/doctoc)
 * [json (D)](https://github.com/trentm/json)
+* [marked-man (D)](https://github.com/kapouer/marked-man#readme)
 * [replace (D)](https://github.com/harthur/replace)
 * [semver (D)](https://github.com/npm/node-semver#readme)
 * [shall (D)](https://github.com/mklement0/shall)
@@ -138,11 +146,21 @@ This project gratefully depends on the following open-source components, accordi
 
 <!-- DO NOT EDIT THE NEXT CHAPTER and RETAIN THIS COMMENT: The next chapter is updated by `make update-readme/release` with the contents of 'CHANGELOG.md'. ALSO, LEAVE AT LEAST 1 BLANK LINE AFTER THIS COMMENT. -->
 
-## Changelog
+# Changelog
 
 Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
+
+* **[v0.2.0](https://github.com/mklement0/rreadlink/compare/v0.1.6...v0.2.0)** (2015-09-18):
+  * [potentially breaking change] `rreadlink` now also accepts options placed
+      _after_ operands on the command line (except after `--`).
+  * [doc] `rreadlink` now has a man page (if manually installed, 
+      use `rreadlink --man`); `rreadlink -h` now just prints concise usage
+      information.
+  * [doc] `README.md` cleaned up and extended.
+  * [dev] Removed post-install command that verifies presence of Bash, because
+    `npm` _prints_ the command during installation, which can be confusing.
 
 * **[v0.1.6](https://github.com/mklement0/rreadlink/compare/v0.1.5...v0.1.6)** (2015-09-15):
   * [dev] Makefile improvements; various other behind-the-scenes tweaks.

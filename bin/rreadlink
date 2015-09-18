@@ -1,91 +1,101 @@
 #!/usr/bin/env bash
 
-kTHIS_NAME=$(basename "$BASH_SOURCE")
+# --- STANDARD SCRIPT-GLOBAL CONSTANTS
 
-# Helper function for exiting with error message due to runtime error.
-#   die [errMsg [exitCode]]
-# Default error message states context and indicates that execution is aborted. Default exit code is 1.
-# Prefix for context is always prepended.
-# Note: An error message is *always* printed; if you just want to exit with a specific code silently, use `exit n` directly.
-die() {
-  echo "$kTHIS_NAME: ERROR: ${1:-"ABORTING due to unexpected error."}" 1>&2
-  exit ${2:-1} # Note: If the argument is non-numeric, the shell prints a warning and uses exit code 255.
+kTHIS_NAME=${BASH_SOURCE##*/}
+kTHIS_HOMEPAGE='https://github.com/mklement0/rreadlink'
+kTHIS_VERSION='v0.2.0' # NOTE: This assignment is automatically updated by `make version VER=<newVer>` - DO keep the 'v' prefix.
+
+unset CDPATH  # To prevent unexpected `cd` behavior.
+
+# --- Begin: STANDARD HELPER FUNCTIONS
+
+die() { echo "$kTHIS_NAME: ERROR: ${1:-"ABORTING due to unexpected error."}" 1>&2; exit ${2:-1}; }
+dieSyntax() { echo "$kTHIS_NAME: ARGUMENT ERROR: ${1:-"Invalid argument(s) specified."} Use -h for help." 1>&2; exit 2; }
+
+# SYNOPSIS
+#   openUrl <url>
+# DESCRIPTION
+#   Opens the specified URL in the system's default browser.
+openUrl() {
+  local url=$1 platform=$(uname) cmd=()
+  case $platform in
+    'Darwin') # OSX
+      cmd=( open "$url" )
+      ;;
+    'CYGWIN_'*) # Cygwin on Windows; must call cmd.exe with its `start` builtin
+      cmd=( cmd.exe /c start '' "$url " )  # !! Note the required trailing space.
+      ;;
+    'MINGW32_'*) # MSYS or Git Bash on Windows; they come with a Unix `start` binary
+      cmd=( start '' "$url" )
+      ;;
+    *) # Otherwise, assume a Freedesktop-compliant OS, which includes many Linux distros, PC-BSD, OpenSolaris, ...
+      cmd=( xdg-open "$url" )
+      ;; 
+  esac
+  "${cmd[@]}" || { echo "Cannot locate or failed to open default browser; please go to '$url' manually." >&2; return 1; }
 }
 
-# Helper function for exiting with error message due to invalid parameters.
-#   dieSyntax [errMsg]
-# Default error message is provided, as is prefix and suffix; exit code is always 2.
-dieSyntax() {
-  echo "$kTHIS_NAME: ARGUMENT ERROR: ${1:-"Invalid argument(s) specified."} Use -h for help." 1>&2
-  exit 2
+# Prints the embedded Markdown-formatted man-page source to stdout.
+printManPageSource() {
+  sed -n -e $'/^: <<\'EOF_MAN_PAGE\'/,/^EOF_MAN_PAGE/ { s///; t\np;}' "$BASH_SOURCE"
 }
 
-# Output version number and exit, if requested. Note that the `ver="..."` statement is automatically updated by `make version VER=<newVer>` - DO keep the 'v' suffix in the variable _definition_.
-[[ $1 == '--version' ]] && { ver="v0.1.6"; echo "$kTHIS_NAME version ${ver}"$'\nFor license information and more, visit https://github.com/mklement0/rreadlink'; exit 0; }
+# Opens the man page, if installed; otherwise, tries to display the embedded Markdown-formatted man-page source; if all else fails: tries to display the man page online.
+openManPage() {
+  local pager embeddedText 
+  if ! man 1 "$kTHIS_NAME" 2>/dev/null; then
+    # 2nd attempt: if present, display the embedded Markdown-formatted man-page source
+    embeddedText=$(printManPageSource)
+    if [[ -n $embeddedText ]]; then
+      pager='more'
+      command -v less &>/dev/null && pager='less' # see if the non-standard `less` is available, because it's preferable to the POSIX utility `more`
+      printf '%s\n' "$embeddedText" | "$pager"
+    else # 3rd attempt: open the the man page on the utility's website
+      openUrl "${kTHIS_HOMEPAGE}/doc/${kTHIS_NAME}.md"
+    fi
+  fi  
+}
 
-  # Separator between paths for single-line output.
-SEP=' -> '
+# Prints the contents of the synopsis chapter of the embedded Markdown-formatted man-page source for quick reference.
+printUsage() {
+  local embeddedText
+  # Extract usage information from the SYNOPSIS chapter of the embedded Markdown-formatted man-page source.
+  embeddedText=$(sed -n -e $'/^: <<\'EOF_MAN_PAGE\'/,/^EOF_MAN_PAGE/!d; /^## SYNOPSIS$/,/^#/{ s///; t\np; }' "$BASH_SOURCE")
+  if [[ -n $embeddedText ]]; then
+    # Print extracted synopsis chapter - remove backticks for uncluttered display.
+    printf '%s\n\n' "$embeddedText" | tr -d '`'
+  else # No SYNOPIS chapter found; fall back to displaying the man page.
+    echo "WARNING: usage information not found; opening man page instead." >&2
+    openManPage
+  fi
+}
 
-# Command-line help.
-if [[ "$1" == '--help' || "$1" == '-h' ]]; then
-  cat <<EOF
+# --- End: STANDARD HELPER FUNCTIONS
 
-SYNOPSIS
-  $kTHIS_NAME [-s|-1] symLink
-  $kTHIS_NAME -e symLink
-
-DESCRIPTION
-  Recursive readlink: prints the CHAIN OF SYMLINKS
-  from the input file to its ultimate target, using ABSOLUTE PATHS.
-
-  -s
-    Short output format - a single line is output with '$SEP' between paths,
-    with symlinks marked with a terminal '@' (similar to  \`ls -lF\`).
-    This is the default output format when printing to a terminal.
-
-  -1 
-    (The number one.) One-line-per-path output format.
-    Prints each output path on its own line, without the terminal '@'.
-    This is the default output format when not printing to a terminal.
-
-  -e
-    Prints only the *ultimate* target's absolute path.
-    Same as GNU readlink's -e (--canonicalize-existing) option.
-  
-  If the input file is indeed a symlink, you'll get at least 2
-  output paths (unless -e is specified): the input symlink and its
-  target; if there are intermediate symlinks, you'll get more.
-
-  While each file is output by its absolute path, it is only
-  the *ultimate* target whose path will be *canonical*.
-
-  CAVEAT: *Circular* symlinks are NOT detected and will result in
-  an infinite loop.
-
-  If any of the files in the chain do not exist, processing
-  stops, an error message is output and exit code 1 is returned.
-
-  If the input file is NOT a symlink, only *its* full path is
-  printed in its *canonical* form. I.e., the file's directory
-  path - if it happens to have symlink components - is resolved to
-  its ultimate target.
-
-  Thus, you can use
-    $kTHIS_NAME -e anyFile
-  on any existing filesystem object, and you'll either get its own
-  canonical path (if not a symlink) or its ultimate target's canonical
-  path (if a symlink).
-
-EXAMPLES
-    # Prints the chain of symlinks for the \`git\` executable
-    # in the \$PATH.
-  $kTHIS_NAME \$(which git)
-    # Prints the canonicalized path of the given non-symlink.
-    # (Example from OSX, where /var links to /private/var.)
-  $kTHIS_NAME /var/log  # -> '/private/var/log'
-EOF
-    exit 0
-fi
+# ---  PROCESS STANDARD, OUTPUT-INFO-THEN-EXIT OPTIONS.
+case $1 in
+  --version)
+    # Output version number and exit, if requested.
+    echo "$kTHIS_NAME $kTHIS_VERSION"$'\nFor license information and more, visit '"$kTHIS_HOMEPAGE"; exit 0
+    ;;
+  -h|--help)
+    # Print usage information and exit.
+    printUsage; exit
+    ;;
+  --man)
+    # Display the manual page and exit, falling back to printing the embedded man-page source.
+    openManPage; exit
+    ;;
+  --man-source) # private option, used by `make update-man`
+    # Print raw, embedded Markdown-formatted man-page source and exit
+    printManPageSource; exit
+    ;;
+  --home)
+    # Open the home page and exit.
+    openUrl "$kTHIS_HOMEPAGE"; exit
+    ;;
+esac
 
 ## -------
 # SYNOPSIS
@@ -149,30 +159,63 @@ rreadlinkchain() ( # execute in *subshell* to localize the effect of `cd`
   done
 )
 
+# --- MAIN BODY
 
-## -------
+  # Separator between paths for single-line output.
+SEP=' -> '
 
+# ----- BEGIN: OPTIONS PARSING: This is MOSTLY generic code, but:
+#  - SET allowOptsAfterOperands AFTER THIS COMMENT TO 1 to ALLOW OPTIONS TO BE MIXED WITH OPERANDS rather than requiring all options to come before the 1st operand, as POSIX mandates.
+#  - The SPECIFIC OPTIONS MUST BE HANDLED IN A CASE ... ESAC STATEMENT BELOW; look for "BEGIN: CUSTOMIZE HERE ... END: CUSTOMIZE HERE"
+#  - Assumes presence of function dieSyntax(); if not present, define as: dieSyntax() { echo "${BASH_SOURCE##*/}: ARGUMENT ERROR: ${1:-"Invalid argument(s) specified."} Use -h for help." >&2; exit 2; }
+#  - After the end of options parsing, $@ only contains the operands (non-option arguments), if any.
 shortFormat= onePathPerLineFormat= ultimateOnly=0
-while getopts s1e opt; do  # $opt will receive the option *letters* one by one; a trailing : means that an arg. is required.
-  [[ $opt == '?' ]] && exit 2 # invalid option or missing option argument - getopts has already printed an error to stderr for us, we just exit.
-  case "$opt" in
-    s) # short (single-line) format
-      shortFormat=1
-      ;;
-    1)
-      onePathPerLineFormat=1
-      ;;
-    e)
-      ultimateOnly=1
-      ;;
-    *)
-      die "DESIGN ERROR: option -$opt not handled."
-      ;;
-  esac
+allowOptsAfterOperands=1 operands=() i=0 optName= isLong=0 prefix= optArg= haveOptArgAttached=0 haveOptArgAsNextArg=0 acceptOptArg=0 needOptArg=0
+while (( $# )); do
+  if [[ $1 =~ ^(-)[a-zA-Z0-9]+.*$ || $1 =~ ^(--)[a-zA-Z0-9]+.*$ ]]; then # an option: either a short option / multiple short options in compressed form or a long option
+    prefix=${BASH_REMATCH[1]}; [[ $prefix == '--' ]] && isLong=1 || isLong=0
+    for (( i = 1; i < (isLong ? 2 : ${#1}); i++ )); do
+        acceptOptArg=0 needOptArg=0 haveOptArgAttached=0 haveOptArgAsNextArg=0 optArgAttached= optArgOpt= optArgReq=
+        if (( isLong )); then # long option: parse into name and, if present, argument
+          optName=${1:2}
+          [[ $optName =~ ^([^=]+)=(.*)$ ]] && { optName=${BASH_REMATCH[1]}; optArgAttached=${BASH_REMATCH[2]}; haveOptArgAttached=1; }
+        else # short option: *if* it takes an argument, the rest of the string, if any, is by definition the argument.
+          optName=${1:i:1}; optArgAttached=${1:i+1}; (( ${#optArgAttached} >= 1 )) && haveOptArgAttached=1
+        fi
+        (( haveOptArgAttached )) && optArgOpt=$optArgAttached optArgReq=$optArgAttached || { (( $# > 1 )) && { optArgReq=$2; haveOptArgAsNextArg=1; }; }
+        # ---- BEGIN: CUSTOMIZE HERE        
+        case $optName in
+          s)
+            shortFormat=1
+            ;;
+          1)
+            onePathPerLineFormat=1
+            ;;
+          e)
+            ultimateOnly=1
+            ;;
+          *)
+            dieSyntax "Unknown option: ${prefix}${optName}."
+            ;;
+        esac
+        # ---- END: CUSTOMIZE HERE
+        (( needOptArg )) && { (( ! haveOptArgAttached && ! haveOptArgAsNextArg )) && dieSyntax "Option ${prefix}${optName} is missing its argument." || (( haveOptArgAsNextArg )) && shift; }
+        (( acceptOptArg || needOptArg )) && break
+    done
+  else # an operand
+    if [[ $1 == '--' ]]; then
+      shift; operands+=( "$@" ); break
+    elif (( allowOptsAfterOperands )); then
+      operands+=( "$1" ) # continue 
+    else
+      operands=( "$@" )
+      break
+    fi
+  fi
+  shift
 done
-
-  # Process the remaining arguments, i.e., the operands (positional arguments).
-shift $((OPTIND - 1)) # Skip the already-processed arguments (options).
+(( "${#operands[@]}" > 0 )) && set -- "${operands[@]}"; unset allowOptsAfterOperands operands i optName isLong prefix optArgAttached haveOptArgAttached haveOptArgAsNextArg acceptOptArg needOptArg
+# --- End: OPTIONS PARSING: "$@" now contains all operands (non-option arguments).
 
 # Make sure we have at least one argument.
 (( $# == 1 )) || dieSyntax "Unexpected number of arguments specified."
@@ -224,3 +267,155 @@ if (( failed )); then
 fi
 
 exit $(( failed ))
+
+####
+# MAN PAGE MARKDOWN SOURCE
+#  - Place a Markdown-formatted version of the man page for this script
+#    inside the here-document below.
+#    The document must be formatted to look good in all 3 viewing scenarios:
+#     - as a man page, after conversion to ROFF with marked-man
+#     - as plain text (raw Markdown source)
+#     - as HTML (rendered Markdown)
+#  Markdown formatting tips:
+#   - GENERAL
+#     To support plain-text rendering in the terminal, limit all lines to 80 chars.,
+#     and, for similar rendering as HTML, *end every line with 2 trailing spaces*.
+#   - HEADINGS
+#     - For better plain-text rendering, leave an empty line after a heading
+#       marked-man will remove it from the ROFF version.
+#     - The first heading must be a level-1 heading containing the utility
+#       name and very brief description; append the manual-section number 
+#       directly to the CLI name; e.g.:
+#         # foo(1) - does bar
+#     - The 2nd, level-2 heading must be '## SYNOPSIS' and the chapter's body
+#       must render reasonably as plain text, because it is printed to stdout
+#       when  `-h`, `--help` is specified:
+#         Use 4-space indentation without markup for both the syntax line and the
+#         block of brief option descriptions; represent option-arguments and operands
+#         in angle brackets; e.g., '<foo>'
+#     - All other headings should be level-2 headings in ALL-CAPS.
+#   - TEXT
+#      - Use NO indentation for regular chapter text; if you do, it will 
+#        be indented further than list items.
+#      - Use 4-space indentation, as usual, for code blocks.
+#      - Markup character-styling markup translates to ROFF rendering as follows:
+#         `...` and **...** render as bolded (red) text
+#         _..._ and *...* render as word-individually underlined text
+#   - LISTS
+#      - Indent list items by 2 spaces for better plain-text viewing, but note
+#        that the ROFF generated by marked-man still renders them unindented.
+#      - End every list item (bullet point) itself with 2 trailing spaces too so
+#        that it renders on its own line.
+#      - Avoid associating more than 1 paragraph with a list item, if possible,
+#        because it requires the following trick, which hampers plain-text readability:
+#        Use '&nbsp;<space><space>' in lieu of an empty line.
+####
+: <<'EOF_MAN_PAGE'
+# rreadlink(1) - recursively resolve symlinks
+
+## SYNOPSIS
+
+Recursively resolves symlinks by printing the chain of targets using absolute  
+paths or prints the canonical path of a symlink's ultimate target or of a  
+non-symlink.
+
+    rreadlink [-s|-1] symLink
+    rreadlink -e symLink
+
+    -s     single-line output format using ' -> ' between paths and
+           @ to mark symlinks (default when printing to terminal)
+    -1     one-line-per-path output format, without the @ marker (default
+           when NOT printing to a terminal)
+    -e     print only the symlink's ultimate target, in canonical form
+
+Standard options: `--help`, `--man`, `--version`, `--home`
+
+## DESCRIPTION
+
+`rreadlink` (*r*ecursive *readlink*) improves upon `readlink`'s functionality  
+by:
+
+* printing a symlink's target *chain* from the input file to its ultimate target.
+* using absolute paths.
+* also working with non-symlinks by printing their canonical paths.
+
+If the input file is indeed a symlink, you'll get at least 2 output paths  
+(unless `-e` is specified): the input symlink and its target; if there are  
+intermediate symlinks, you'll get more.
+
+While each file is output by its absolute path, it is only the *ultimate*  
+target whose path will be *canonical*.
+
+CAVEAT: *Circular* symlinks are NOT detected and will result in an infinite  
+loop.
+
+If any of the files in the chain do not exist, processing stops, an error  
+message is output, and exit code 1 is returned.
+
+If the input file is NOT a symlink, only *its* full path is printed in its  
+*canonical* form. I.e., the file's directory path - if it happens to have  
+symlink components - is resolved to its ultimate target.
+
+Thus, you can use `rreadlink -e <anyFile>` on any existing filesystem object,  
+and you'll either get its own canonical path (if not a symlink) or its  
+ultimate target's canonical path (if a symlink).
+
+## OPTIONS
+
+  * `-s`, ``  
+    Single-line output format, with ' -> ' between paths, and symlinks marked
+    with a terminal `@` (similar to  `ls -lF`).  
+    This is the default output format when printing to a terminal.
+
+  * `-1`, ``  
+    (The number one.) One-line-per-path output format.  
+    Prints each output path on its own line, without the terminal `@`.  
+    This is the default output format when *not* printing to a terminal.
+
+  * `-e`, `--ultimate`  
+    Prints only the *ultimate* target's absolute, canonical path.  
+    Same as GNU `readlink`'s `-e` (`--canonicalize-existing`) option.  
+    If a non-symlink is given, its own canonical path is output.
+
+## STANDARD OPTIONS
+
+All standard options provide information only.
+
+ * `-h, --help`  
+   Prints the contents of the synopsis chapter to stdout for quick reference.
+
+ * `--man`  
+   Displays this manual page, which is a helpful alternative to using `man`,  
+   if the manual page isn't installed.
+
+ * `--version`  
+   Prints version information.
+  
+ * `--home`  
+   Opens this utility's home page in the system's default web browser.
+
+## SEE ALSO
+
+`typex`(1) reports the path of executables in the system's path, among other  
+things, and has `rreadlink`'s functionality built in, so as to show what  
+file is ultimately invoked for a given executable name.  
+See https://github.com/mklement0/typex
+
+## LICENSE
+
+For license information, bug reports, and more, visit this utility's home page  
+by running `rreadlink --home`.
+
+## EXAMPLES
+
+      # Print the chain of symlinks for the `nawk` executable.
+      # (Sample output from Ubuntu.)
+    $ rreadlink $(which nawk)
+    /usr/bin/nawk@ -> /etc/alternatives/nawk@ -> /usr/bin/gawk
+
+      # Print the canonicalized path of a non-symlink.
+      # (Sample output from a Fedora, where /bin is symlinked to /usr/bin.)
+    $ rreadlink -e /bin/sed
+    /usr/bin/sed
+
+EOF_MAN_PAGE

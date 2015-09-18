@@ -1,0 +1,147 @@
+.TH "RREADLINK" "1" "September 2015" "v0.2.0" ""
+.SH "NAME"
+\fBrreadlink\fR \- recursively resolve symlinks
+.SH SYNOPSIS
+.P
+Recursively resolves symlinks by printing the chain of targets using absolute
+.br
+paths or prints the canonical path of a symlink's ultimate target or of a
+.br
+non\-symlink\.
+.P
+.RS 2
+.nf
+rreadlink [\-s|\-1] symLink
+rreadlink \-e symLink
+
+\-s     single\-line output format using ' \-> ' between paths and
+       @ to mark symlinks (default when printing to terminal)
+\-1     one\-line\-per\-path output format, without the @ marker (default
+       when NOT printing to a terminal)
+\-e     print only the symlink's ultimate target, in canonical form
+.fi
+.RE
+.P
+Standard options: \fB\-\-help\fP, \fB\-\-man\fP, \fB\-\-version\fP, \fB\-\-home\fP
+.SH DESCRIPTION
+.P
+\fBrreadlink\fP (\fIr\fRecursive \fIreadlink\fR) improves upon \fBreadlink\fP\|'s functionality
+.br
+by:
+.RS 0
+.IP \(bu 2
+printing a symlink's target \fIchain\fR from the input file to its ultimate target\.
+.IP \(bu 2
+using absolute paths\.
+.IP \(bu 2
+also working with non\-symlinks by printing their canonical paths\.
+
+.RE
+.P
+If the input file is indeed a symlink, you'll get at least 2 output paths
+.br
+(unless \fB\-e\fP is specified): the input symlink and its target; if there are
+.br
+intermediate symlinks, you'll get more\.
+.P
+While each file is output by its absolute path, it is only the \fIultimate\fR
+.br
+target whose path will be \fIcanonical\fR\|\.
+.P
+CAVEAT: \fICircular\fR symlinks are NOT detected and will result in an infinite
+.br
+loop\.
+.P
+If any of the files in the chain do not exist, processing stops, an error
+.br
+message is output, and exit code 1 is returned\.
+.P
+If the input file is NOT a symlink, only \fIits\fR full path is printed in its
+.br
+\fIcanonical\fR form\. I\.e\., the file's directory path \- if it happens to have
+.br
+symlink components \- is resolved to its ultimate target\.
+.P
+Thus, you can use \fBrreadlink \-e <anyFile>\fP on any existing filesystem object,
+.br
+and you'll either get its own canonical path (if not a symlink) or its
+.br
+ultimate target's canonical path (if a symlink)\.
+.SH OPTIONS
+.RS 0
+.IP \(bu 2
+\fB\-s\fP, \fB`  
+Single\-line output format, with ' \-> ' between paths, and symlinks marked
+with a terminal\fP@\fB(similar to\fPls \-lF`)\.
+.br
+This is the default output format when printing to a terminal\.
+.IP \(bu 2
+\fB\-1\fP, \fB`  
+(The number one\.) One\-line\-per\-path output format\.  
+Prints each output path on its own line, without the terminal\fP@`\.
+.br
+This is the default output format when \fInot\fR printing to a terminal\.
+.IP \(bu 2
+\fB\-e\fP, \fB\-\-ultimate\fP
+.br
+Prints only the \fIultimate\fR target's absolute, canonical path\.
+.br
+Same as GNU \fBreadlink\fP\|'s \fB\-e\fP (\fB\-\-canonicalize\-existing\fP) option\.
+.br
+If a non\-symlink is given, its own canonical path is output\.
+
+.RE
+.SH STANDARD OPTIONS
+.P
+All standard options provide information only\.
+.RS 0
+.IP \(bu 2
+\fB\-h, \-\-help\fP
+.br
+Prints the contents of the synopsis chapter to stdout for quick reference\.
+.IP \(bu 2
+\fB\-\-man\fP
+.br
+Displays this manual page, which is a helpful alternative to using \fBman\fP,
+.br
+if the manual page isn't installed\.
+.IP \(bu 2
+\fB\-\-version\fP
+.br
+Prints version information\.
+.IP \(bu 2
+\fB\-\-home\fP
+.br
+Opens this utility's home page in the system's default web browser\.
+
+.RE
+.SH SEE ALSO
+.P
+\fBtypex\fP(1) reports the path of executables in the system's path, among other
+.br
+things, and has \fBrreadlink\fP\|'s functionality built in, so as to show what
+.br
+file is ultimately invoked for a given executable name\.
+.br
+See https://github\.com/mklement0/typex
+.SH LICENSE
+.P
+For license information, bug reports, and more, visit this utility's home page
+.br
+by running \fBrreadlink \-\-home\fP\|\.
+.SH EXAMPLES
+.P
+.RS 2
+.nf
+  # Print the chain of symlinks for the `nawk` executable\.
+  # (Sample output from Ubuntu\.)
+$ rreadlink $(which nawk)
+/usr/bin/nawk@ \-> /etc/alternatives/nawk@ \-> /usr/bin/gawk
+
+  # Print the canonicalized path of a non\-symlink\.
+  # (Sample output from a Fedora, where /bin is symlinked to /usr/bin\.)
+$ rreadlink \-e /bin/sed
+/usr/bin/sed
+.fi
+.RE
+

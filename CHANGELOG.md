@@ -4,6 +4,16 @@ Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
 
+* **[v0.2.0](https://github.com/mklement0/rreadlink/compare/v0.1.6...v0.2.0)** (2015-09-18):
+  * [potentially breaking change] `rreadlink` now also accepts options placed
+      _after_ operands on the command line (except after `--`).
+  * [doc] `rreadlink` now has a man page (if manually installed, 
+      use `rreadlink --man`); `rreadlink -h` now just prints concise usage
+      information.
+  * [doc] `README.md` cleaned up and extended.
+  * [dev] Removed post-install command that verifies presence of Bash, because
+    `npm` _prints_ the command during installation, which can be confusing.
+
 * **[v0.1.6](https://github.com/mklement0/rreadlink/compare/v0.1.5...v0.1.6)** (2015-09-15):
   * [dev] Makefile improvements; various other behind-the-scenes tweaks.
 
