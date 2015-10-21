@@ -4,6 +4,9 @@ Versioning complies with [semantic versioning (semver)](http://semver.org/).
 
 <!-- NOTE: An entry template is automatically added each time `make version` is called. Fill in changes afterwards. -->
 
+* **[v0.2.1](https://github.com/mklement0/rreadlink/compare/v0.2.0...v0.2.1)** (2015-10-21):
+  * [dev] Improved robustness of interal `rreadlinkchain()` function.
+
 * **[v0.2.0](https://github.com/mklement0/rreadlink/compare/v0.1.6...v0.2.0)** (2015-09-18):
   * [potentially breaking change] `rreadlink` now also accepts options placed
       _after_ operands on the command line (except after `--`).
