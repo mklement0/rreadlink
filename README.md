@@ -142,7 +142,7 @@ This project gratefully depends on the following open-source components, accordi
 * [replace (D)](https://github.com/harthur/replace)
 * [semver (D)](https://github.com/npm/node-semver#readme)
 * [shall (D)](https://github.com/mklement0/shall)
-* [urchin (D)](https://github.com/tlevine/urchin)
+* [urchin (D)](https://git.sdf.org/tlevine/urchin)
 
 <!-- DO NOT EDIT THE NEXT CHAPTER and RETAIN THIS COMMENT: The next chapter is updated by `make update-readme/release` with the contents of 'CHANGELOG.md'. ALSO, LEAVE AT LEAST 1 BLANK LINE AFTER THIS COMMENT. -->
 
